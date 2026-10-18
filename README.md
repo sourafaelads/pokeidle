@@ -9,7 +9,7 @@
 ![Rust](https://img.shields.io/badge/feito%20em-Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
 ![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-f5c542?style=for-the-badge)
 
-<img src="docs/grade.png" alt="Painel em grade com 4 contas" width="100%">
+<img src="docs/painel.png" alt="Painel em grade com 4 contas" width="100%">
 
 [⬇️ Baixar](#%EF%B8%8F-como-baixar-e-instalar) · [🚀 Primeiro uso](#-primeiro-uso) · [💜 Bônus da Twitch](#-como-funcionam-os-bônus) · [❓ Dúvidas](#-dúvidas-frequentes)
 
