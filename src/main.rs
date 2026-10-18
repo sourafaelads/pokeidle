@@ -461,7 +461,7 @@ fn load_config() -> Config {
             for d in extensoes_padrao() { if !c.extensoes.iter().any(|x| x == &d) { c.extensoes.push(d); } }
             for d in kick_canais_padrao() { if !c.kick_canais.iter().any(|x| x.eq_ignore_ascii_case(&d)) { c.kick_canais.push(d); } }
             if c.repo_github == "sourafaelads/pokeidle-hub" { c.repo_github = repo_padrao(); } // nome antigo
-            c.contas.truncate(4) // máximo de 4 contas (regras do jogo);
+            c.contas.truncate(4); // máximo de 4 contas (regras do jogo)
             if c.contas.is_empty() { c.contas = Config::default().contas; }
             c
         }
@@ -914,7 +914,7 @@ const CMD_PREFIX: &str = "https://hub.cmd/";
 
 fn toolbar_html(names: &[String], insta: bool) -> String {
     let up = r#"<button id="up" onclick="send('update')" title="Baixar a versão nova no GitHub" style="display:none;background:#2f8f4e;color:#fff">⬆ Nova versão</button>"#;
-    let insta = if insta { format!(r#"<span class="sp"></span><button id="ig" onclick="send('insta')" title="Gostou do app? Me segue no Instagram :)">📷 @{INSTA}</button>"#) } else { String::new() };
+    let insta = if insta { format!(r#"<span class="sp"></span><button id="ig" onclick="send('insta')" title="Me segue no Instagram: @{INSTA}"><span class="ap">quer me<br>apoiar?</span><span class="ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.6" fill="currentColor"/></svg></span></button>"#) } else { String::new() };
     let names: Vec<String> = names.to_vec();
     let tabs: String = names
         .iter()
@@ -934,8 +934,12 @@ button{{border:0;border-radius:6px;background:#3a2a33;color:#ddd;height:28px;pad
 button:hover{{background:#4b3642}}
 .tab.on{{background:#7b4fd6;color:#fff}}
 #rt.on{{background:#e05a5a;color:#fff}}
-#ig{{background:transparent;border:1px solid #4b3642;color:#c9a7e6}}
-#ig:hover{{background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);border-color:transparent;color:#fff}}
+#ig{{background:transparent;padding:0 4px;gap:7px;color:#8f7a8a}}
+#ig:hover{{background:transparent;color:#e9d9e4}}
+#ig .ap{{font:600 11px/12px 'Segoe UI',sans-serif;text-align:right;letter-spacing:.02em;color:#ff9fd8}}
+#ig:hover .ap{{color:#ffd1ec}}
+#ig .ic{{display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:7px;color:#fff;background:linear-gradient(135deg,#7b4fd6,#c13584 60%,#f5a142);opacity:.85;transition:transform .15s,opacity .15s}}
+#ig:hover .ic{{opacity:1;transform:scale(1.08)}}
 .tab.drop{{box-shadow:0 0 0 2px #f5c542 inset}}
 .tab.drop .nm::after{{content:' ★';color:#f5c542}}
 .tab.kick{{background:#7a1f2b;color:#fff;box-shadow:0 0 0 2px #ff6b6b inset}}
