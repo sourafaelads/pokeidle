@@ -89,7 +89,7 @@ struct Config {
 
 const INSTA: &str = "sourafaelads";
 /// Versão deste app (compare com a "tag" da Release no GitHub, ex.: v0.37)
-const VERSAO: &str = "0.37";
+const VERSAO: &str = "0.38";
 /// Repositório onde saem as versões novas (Releases)
 const REPO_PADRAO: &str = "sourafaelads/pokeidle";
 fn repo_padrao() -> String { REPO_PADRAO.into() }
@@ -101,7 +101,7 @@ fn ver_num(v: &str) -> Vec<u64> {
 
 fn um() -> usize { 1 }
 fn kick_canais_padrao() -> Vec<String> {
-    ["surskity", "axt", "rodil", "guaxilol1", "yetz", "patopapao2", "clovaobengalalol", "biscoitao", "matta", "cogu",
+    ["axt", "rodil", "guaxilol1", "yetz", "patopapao2", "clovaobengalalol", "biscoitao", "matta", "cogu",
      "tftoddy", "luccatv", "techzz", "dersin2k"].iter().map(|s| s.to_string()).collect()
 }
 
@@ -297,9 +297,12 @@ fn extensoes_padrao() -> Vec<String> {
 
 
 fn canais_padrao() -> Vec<String> {
-    ["Surskity11", "ClovaoBengala", "aXtLOL", "Rodil", "matta", "Biscoitao", "cogu", "Guaxilol1",
+    ["ClovaoBengala", "aXtLOL", "Rodil", "matta", "Biscoitao", "cogu", "Guaxilol1",
      "LuccaTV", "faasii", "PatoPapao", "TFToddy", "Techzz", "dersin2k"].iter().map(|s| s.to_string()).collect()
 }
+
+/// Canais que saíram da parceria: são tirados também de configs antigos.
+const CANAIS_REMOVIDOS: &[&str] = &["surskity11", "surskity"];
 
 fn yes() -> bool { true }
 fn largura() -> f64 { 1920.0 }
@@ -460,6 +463,8 @@ fn load_config() -> Config {
             for d in canais_padrao() { if !c.canais.iter().any(|x| x.eq_ignore_ascii_case(&d)) { c.canais.push(d); } }
             for d in extensoes_padrao() { if !c.extensoes.iter().any(|x| x == &d) { c.extensoes.push(d); } }
             for d in kick_canais_padrao() { if !c.kick_canais.iter().any(|x| x.eq_ignore_ascii_case(&d)) { c.kick_canais.push(d); } }
+            c.canais.retain(|x| !CANAIS_REMOVIDOS.contains(&x.trim().to_lowercase().as_str()));
+            c.kick_canais.retain(|x| !CANAIS_REMOVIDOS.contains(&x.trim().to_lowercase().as_str()));
             if c.repo_github == "sourafaelads/pokeidle-hub" { c.repo_github = repo_padrao(); } // nome antigo
             c.contas.truncate(4); // máximo de 4 contas (regras do jogo)
             if c.contas.is_empty() { c.contas = Config::default().contas; }
