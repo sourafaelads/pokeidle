@@ -1,0 +1,92 @@
+name: 🐞 Reportar bug
+description: Algo não funcionou como deveria
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Valeu por ajudar a melhorar o PokeIdle Hub! 💜
+        Quanto mais detalhe, mais rápido dá para corrigir.
+        **Nunca cole senhas, tokens ou o conteúdo da pasta `%LOCALAPPDATA%\PokeIdleHub`.**
+
+  - type: textarea
+    id: oque
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o problema.
+      placeholder: "Ex.: ao clicar em ▦ Grade, a tela fica preta."
+    validations:
+      required: true
+
+  - type: textarea
+    id: passos
+    attributes:
+      label: Como fazer acontecer de novo
+      description: O passo a passo até o erro aparecer.
+      placeholder: |
+        1. Abri o app
+        2. Cliquei em ...
+        3. Apareceu ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: esperado
+    attributes:
+      label: O que você esperava que acontecesse?
+
+  - type: input
+    id: versao
+    attributes:
+      label: Versão do app
+      description: Está na primeira linha do log.txt (ex.: "inicio v0.37 (sem Kick)").
+      placeholder: "v0.37"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: exe
+    attributes:
+      label: Qual executável?
+      options:
+        - PokeIdleHub.exe (padrão)
+        - PokeIdleHub-Kick.exe
+    validations:
+      required: true
+
+  - type: dropdown
+    id: windows
+    attributes:
+      label: Windows
+      options:
+        - Windows 11
+        - Windows 10
+        - Outro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: contas
+    attributes:
+      label: Quantas contas abertas?
+      options:
+        - "1"
+        - "2"
+        - "3"
+        - "4"
+
+  - type: textarea
+    id: log
+    attributes:
+      label: log.txt
+      description: |
+        Abra o `log.txt` (fica ao lado do .exe), copie as últimas ~50 linhas e cole aqui.
+        Ele não tem senhas nem tokens, mas pode ter o nick das suas contas — apague se preferir.
+      render: text
+
+  - type: textarea
+    id: prints
+    attributes:
+      label: Prints
+      description: Arraste imagens aqui, se tiver.

@@ -1,0 +1,46 @@
+name: 💡 Sugerir ideia
+description: Uma função nova ou uma melhoria
+title: "[Ideia] "
+labels: ["ideia"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Toda ideia é bem-vinda! 💜
+        Lembre que o objetivo do app é **ser leve e rodar bem em PC fraco** — ideias que pesam muito talvez virem opção desligável.
+
+  - type: textarea
+    id: ideia
+    attributes:
+      label: Qual é a ideia?
+      placeholder: "Ex.: avisar quando as pokébolas estiverem acabando."
+    validations:
+      required: true
+
+  - type: textarea
+    id: porque
+    attributes:
+      label: Por que ajudaria?
+      description: Que problema isso resolve no seu dia a dia de jogo?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Parte do app
+      options:
+        - Grade / painel
+        - Twitch / bônus
+        - Kick
+        - Discord
+        - Extensões (/hunt, Rotom)
+        - Barra / atalhos
+        - Desempenho / RAM
+        - Outro
+
+  - type: textarea
+    id: exemplo
+    attributes:
+      label: Exemplo ou print
+      description: Se tiver uma referência visual, arraste aqui.

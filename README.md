@@ -11,7 +11,7 @@
 
 <img src="docs/painel.png" alt="Painel em grade com 4 contas" width="100%">
 
-[⬇️ Baixar](#%EF%B8%8F-como-baixar-e-instalar) · [🚀 Primeiro uso](#-primeiro-uso) · [💜 Bônus da Twitch](#-como-funcionam-os-bônus) · [❓ Dúvidas](#-dúvidas-frequentes)
+[⬇️ Baixar](#%EF%B8%8F-como-baixar-e-instalar) · [🚀 Primeiro uso](#-primeiro-uso) · [💜 Bônus da Twitch](#-como-funcionam-os-bônus) · [❓ Dúvidas](#-dúvidas-frequentes) · [🐞 Bugs e ideias](#-bugs-e-ideias)
 
 </div>
 
@@ -23,7 +23,7 @@ Quem joga com várias contas sabe: 4 abas do jogo + 7 lives da Twitch abertas no
 
 | | |
 |---|---|
-| 🪟 **Até 4 contas numa janela** | Cada conta com o próprio login, fora do seu navegador do dia a dia. O nome da aba vira o nick da conta. |
+| 🪟 **Até 4 contas numa janela** | O máximo permitido pelas regras do jogo. Cada conta com o próprio login, fora do seu navegador do dia a dia. O nome da aba vira o nick da conta. |
 | 🪶 **Leve de verdade** | Feito em Rust, com o motor do Edge que já vem no Windows. Usa uma fração da RAM de um navegador com tudo aberto. |
 | 💤 **Nunca congela** | As contas continuam rodando mesmo minimizadas ou fora da tela. Dá para deixar a noite toda. |
 | 💜 **Bônus da Twitch sem abrir live** | O app entra no **chat** das lives parceiras com a Twitch de cada conta. Sem vídeo, sem áudio, quase zero de RAM. |
@@ -285,7 +285,22 @@ vendor/wry/      wry 0.53 com pequenos ajustes para o WebView2
                  (perfis por conta, extensões, memória, gerenciador de tarefas)
 ```
 
-Sugestões e correções são bem-vindas — abra uma *issue* ou um *pull request*.
+Quer mandar código? Leia o [guia de contribuição](CONTRIBUTING.md).
+
+---
+
+## 🐞 Bugs e ideias
+
+Achou um problema ou tem uma ideia? Abra uma issue — leva 1 minuto:
+
+<div align="center">
+
+[![Reportar bug](https://img.shields.io/badge/🐞_Reportar_bug-d73a49?style=for-the-badge)](https://github.com/sourafaelads/pokeidle/issues/new?template=bug.yml)
+[![Sugerir ideia](https://img.shields.io/badge/💡_Sugerir_ideia-7b4fd6?style=for-the-badge)](https://github.com/sourafaelads/pokeidle/issues/new?template=ideia.yml)
+
+</div>
+
+No bug, cole o final do `log.txt` (fica ao lado do .exe) — ajuda muito a achar o problema.
 
 ---
 

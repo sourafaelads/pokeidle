@@ -461,7 +461,7 @@ fn load_config() -> Config {
             for d in extensoes_padrao() { if !c.extensoes.iter().any(|x| x == &d) { c.extensoes.push(d); } }
             for d in kick_canais_padrao() { if !c.kick_canais.iter().any(|x| x.eq_ignore_ascii_case(&d)) { c.kick_canais.push(d); } }
             if c.repo_github == "sourafaelads/pokeidle-hub" { c.repo_github = repo_padrao(); } // nome antigo
-            c.contas.truncate(8);
+            c.contas.truncate(4) // máximo de 4 contas (regras do jogo);
             if c.contas.is_empty() { c.contas = Config::default().contas; }
             c
         }
