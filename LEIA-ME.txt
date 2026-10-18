@@ -1,0 +1,94 @@
+PokeIdle Hub (v0.37)
+====================
+Site, novidades e código: https://github.com/sourafaelads/pokeidle
+
+Um app leve (Rust + motor do Edge/WebView2) que roda as 4 contas do PokeIdle
+numa janela só, fora do seu navegador de trabalho, com painel, Twitch e Discord.
+
+ARQUIVOS DESTA PASTA
+  PokeIdleHub.exe        versão principal (SEM Kick) — use esta
+  PokeIdleHub-Kick.exe   mesma coisa + lives da Kick (pesa ~500 MB por live)
+                         -> NUNCA abra as duas ao mesmo tempo (usam os mesmos logins)
+  WebView2Loader.dll     precisa ficar junto do .exe
+  log.txt                (criado ao usar) registro de diagnóstico, sem senhas nem tokens
+
+PRIMEIRO USO
+  1. Abra o PokeIdleHub.exe (se o Windows avisar: "Mais informações" > "Executar assim mesmo").
+  2. Faça login em cada aba (1 a 4) — espere o ✓ da Cloudflare antes de clicar em Entrar.
+     Cada aba precisa de uma conta DIFERENTE (conta repetida = uma pausa a outra).
+  3. Na ▦ Grade, clique em "Conectar Twitch" em cada cartão e entre com a Twitch daquele alt.
+  Daí em diante tudo abre e conecta sozinho.
+
+BARRA DE CIMA
+  1..4 (abas)     cada conta; o nome vira o nick sozinho. Duplo clique = renomear.
+                  ↻ recarrega a conta.  ★ = drop raro novo.  ⚠ = conta derrubada.
+  📷 @sourafaelads Instagram do autor (some com "mostrar_insta": false)
+  ⬆ Nova versão   aparece quando sai versão nova no GitHub
+  ▦ Grade         painel com as 4 contas lado a lado
+  🎯 Rotom        Cockpit da Rotom Sniper da conta aberta (Ctrl+P)
+  ↻ Todas         recarrega todas as contas
+  Discord: ...    como o nick aparece no Discord: mostrar / borrar / esconder
+  📊              RAM e CPU de cada página (gerenciador do motor)
+  🐞              salva uma cópia das páginas para diagnóstico
+  ⚙               abre a pasta de configuração (config.json)
+
+ATALHOS
+  Ctrl+1..4  troca de conta     Ctrl+G  grade     Ctrl+P  Rotom     F12  ferramentas de desenvolvedor
+
+GRADE (cada cartão)
+  - Nick, hunt atual, bônus de XP, tempo de sessão
+  - Twitch: conectada · 14/14 canais  (botão Trocar conta)
+  - Bônus ativos (VIP, Boost Guild, Twitch...)
+  - Barras: Treinador e Pokémon em campo (nível, XP, "upa em X", HP)
+  - XP Treinador, XP Pokémon, Lucro, Abates, Capturas — contando segundo a segundo
+  - Melhor captura da sessão (Nota, IV, Q, P) com o sprite
+  - Itens (pokébolas, poções — contorno vermelho abaixo de 100), Achados e Itens Raros
+  - Alertas: "Novo drop raro!", "Conta desconectada (aberta em outro lugar)",
+    "Mesma conta da aba X"
+  Clique no cartão para abrir a conta.
+
+TWITCH (bônus por live)
+  O app entra no CHAT dos canais oficiais com a conta da Twitch de cada alt.
+  Sem vídeo: poucos MB no total. O jogo leva alguns minutos para reconhecer.
+  IMPORTANTE: a Twitch conectada no cartão tem que ser a MESMA vinculada àquela
+  conta dentro do jogo ("Conta vinculada: ..."). Duas contas não podem usar a
+  mesma Twitch.
+
+DISCORD (Rich Presence)
+  Com o Discord aberto no PC, aparece "Jogando Idle Hub" com o Pokémon em campo,
+  nick e nível, quem está enfrentando e o tempo de sessão — uma conta por minuto.
+
+EXTENSÕES (/hunt e Rotom Sniper)
+  Se estiverem instaladas no Brave/Chrome/Edge, o app copia e carrega em todas
+  as contas sozinho (feche e abra o app depois de instalar).
+
+ONDE FICAM OS DADOS
+  %LOCALAPPDATA%\PokeIdleHub\
+    motor\        logins (cookies) de cada conta — a senha NÃO é salva
+    config.json   opções (abaixo)
+    extensoes\    cópia das extensões
+    conta1..4\    logins de versões antigas (podem ser apagados)
+
+CONFIG.JSON (feche o app antes de editar)
+  "contas"             nomes manuais das abas ("Conta 1" = usar o nick)
+  "canais"             canais da Twitch (os padrão do app são somados sozinhos)
+  "discord"            true/false — mostrar no Discord
+  "discord_nick"       "mostrar" | "borrar" | "esconder"
+  "discord_emoji"      emoji antes do nick (ex.: "🧢", "" = nenhum)
+  "discord_intervalo"  segundos para trocar de conta no Discord (padrão 60)
+  "pausar_desenho"     contas fora da vista não desenham (menos CPU) — padrão true
+  "memoria_baixa"      enxugar memória das contas fora da vista — padrão false
+  "motor_unico"        um motor para tudo (menos RAM) — padrão true
+  "url"                endereço do jogo
+  "mostrar_insta"      true/false — botão do Instagram na barra
+  "repo_github"        onde procurar versão nova ("" = não procurar)
+  Só na versão com Kick:
+  "kick_canais"        canais da Kick
+  "kick_max"           lives da Kick por conta (padrão 1; 0 = todas ao vivo)
+
+SEUS DADOS
+  NÃO compartilhe a pasta %LOCALAPPDATA%\PokeIdleHub — ela tem suas contas logadas.
+  Para passar o app a um amigo, mande só este zip.
+
+DICA PARA DEIXAR LIGADO A NOITE
+  Windows > Configurações > Sistema > Energia > Suspender quando conectado: Nunca.

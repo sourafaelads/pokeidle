@@ -1,0 +1,24 @@
+[package]
+name = "pokeidle-hub"
+version = "0.37.0"
+edition = "2021"
+
+[features]
+kick = []
+
+[dependencies]
+wry = { version = "0.53", features = ["devtools"] }
+tao = "0.34"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+native-tls = "0.2"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[patch.crates-io]
+wry = { path = "vendor/wry" }
