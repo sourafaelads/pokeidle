@@ -1,4 +1,4 @@
-PokeIdle Hub (v0.38)
+PokeIdle Hub (v0.39)
 ====================
 Site, novidades e código: https://github.com/sourafaelads/pokeidle
 

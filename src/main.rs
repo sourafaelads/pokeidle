@@ -89,7 +89,7 @@ struct Config {
 
 const INSTA: &str = "sourafaelads";
 /// Versão deste app (compare com a "tag" da Release no GitHub, ex.: v0.37)
-const VERSAO: &str = "0.38";
+const VERSAO: &str = "0.39";
 /// Repositório onde saem as versões novas (Releases)
 const REPO_PADRAO: &str = "sourafaelads/pokeidle";
 fn repo_padrao() -> String { REPO_PADRAO.into() }
@@ -298,7 +298,7 @@ fn extensoes_padrao() -> Vec<String> {
 
 fn canais_padrao() -> Vec<String> {
     ["ClovaoBengala", "aXtLOL", "Rodil", "matta", "Biscoitao", "cogu", "Guaxilol1",
-     "LuccaTV", "faasii", "PatoPapao", "TFToddy", "Techzz", "dersin2k"].iter().map(|s| s.to_string()).collect()
+     "LuccaTV", "faasii", "PatoPapao", "TFToddy", "Techzz", "dersin2k", "FaturetoSL"].iter().map(|s| s.to_string()).collect()
 }
 
 /// Canais que saíram da parceria: são tirados também de configs antigos.
