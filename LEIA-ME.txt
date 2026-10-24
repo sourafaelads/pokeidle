@@ -1,4 +1,4 @@
-PokeIdle Hub (v0.39)
+PokeIdle Hub (v0.40)
 ====================
 Site, novidades e código: https://github.com/sourafaelads/pokeidle
 
@@ -80,6 +80,8 @@ CONFIG.JSON (feche o app antes de editar)
   "memoria_baixa"      enxugar memória das contas fora da vista — padrão false
   "motor_unico"        um motor para tudo (menos RAM) — padrão true
   "url"                endereço do jogo
+  "alerta_bola"        avisa (🎒 na aba) quando as pokébolas do automático ficam abaixo disso (padrão 10000; 0 = desligado)
+  "alerta_pocao"       o mesmo para as poções (padrão 10000)
   "mostrar_insta"      true/false — botão do Instagram na barra
   "repo_github"        onde procurar versão nova ("" = não procurar)
   Só na versão com Kick:

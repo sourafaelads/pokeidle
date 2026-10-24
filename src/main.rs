@@ -85,11 +85,46 @@ struct Config {
     /// Repositório do GitHub consultado ao abrir para avisar de versão nova ("" = não consultar)
     #[serde(default = "repo_padrao")]
     repo_github: String,
+    /// Avisa quando as pokébolas marcadas no automático somarem menos que isto (0 = não avisar)
+    #[serde(default = "dez_mil")]
+    alerta_bola: u64,
+    /// Avisa quando as poções marcadas no automático somarem menos que isto (0 = não avisar)
+    #[serde(default = "dez_mil")]
+    alerta_pocao: u64,
+}
+
+fn dez_mil() -> u64 { 10_000 }
+
+/// Formata 12345 como "12.345".
+fn milhar(n: u64) -> String {
+    let s = n.to_string();
+    let mut out = String::new();
+    for (k, ch) in s.chars().enumerate() { if k > 0 && (s.len() - k) % 3 == 0 { out.push('.'); } out.push(ch); }
+    out
+}
+
+/// Itens do automático (bola/poção) abaixo do limite: ["Ultra Ball 8.512", ...]
+fn itens_baixos(v: &serde_json::Value, lim_bola: u64, lim_pocao: u64) -> Vec<String> {
+    let mut out = Vec::new();
+    for (k, lim) in [("ball", lim_bola), ("pot", lim_pocao)] {
+        if lim == 0 { continue; }
+        let Some(arr) = v.get("uso").and_then(|u| u.get(k)).and_then(|a| a.as_array()) else { continue };
+        if arr.is_empty() { continue; } // automático desligado
+        let total: u64 = arr.iter().map(|c| c.get("q").and_then(|q| q.as_u64()).unwrap_or(0)).sum();
+        if total >= lim { continue; }
+        // nomes das que ainda têm estoque (se todas acabaram, todas)
+        let com = |so_com: bool| -> Vec<&str> { arr.iter().filter(|c| !so_com || c.get("q").and_then(|q| q.as_u64()).unwrap_or(0) > 0)
+            .filter_map(|c| c.get("n").and_then(|n| n.as_str())).filter(|n| !n.is_empty()).collect() };
+        let nomes = if total > 0 { com(true) } else { com(false) };
+        let nome = if nomes.is_empty() { if k == "ball" { "Pokébola".to_string() } else { "Poção".to_string() } } else { nomes.join(" + ") };
+        out.push(format!("{} {}", nome, milhar(total)));
+    }
+    out
 }
 
 const INSTA: &str = "sourafaelads";
 /// Versão deste app (compare com a "tag" da Release no GitHub, ex.: v0.37)
-const VERSAO: &str = "0.39";
+const VERSAO: &str = "0.40";
 /// Repositório onde saem as versões novas (Releases)
 const REPO_PADRAO: &str = "sourafaelads/pokeidle";
 fn repo_padrao() -> String { REPO_PADRAO.into() }
@@ -334,6 +369,8 @@ impl Default for Config {
             kick_max: 1,
             mostrar_insta: true,
             repo_github: repo_padrao(),
+            alerta_bola: dez_mil(),
+            alerta_pocao: dez_mil(),
         }
     }
 }
@@ -780,7 +817,7 @@ const GAME_SCRIPT: &str = r#"(function(){
       const c = TX(Q('b', sl));
       if (!c || c === '0') continue;
       const im = Q('img', sl);
-      out.found.push({ c, n: sl.getAttribute('title') || '', img: im ? ABS(im.getAttribute('src')) : '', shiny: /shiny/.test(sl.className) });
+      out.found.push({ c, n: sl.getAttribute('title') || '', campo: sl.getAttribute('data-campo') || '', img: im ? ABS(im.getAttribute('src')) : '', shiny: /shiny/.test(sl.className) });
     }
     // itens raros (aba) e o "+N" da sessão
     const rr = Q('.eco-cat[data-eco-cat="raros"]');
@@ -789,10 +826,27 @@ const GAME_SCRIPT: &str = r#"(function(){
     out.items = QA('.eco-grade-itens .eco-item').slice(0, 8).map(it => { const im = Q('img', it); return { c: TX(Q('.eco-item-q', it)).replace(/^[×x]\s*/, ''), n: it.getAttribute('title') || '', img: im ? ABS(im.getAttribute('src')) : '' }; }).filter(x => x.c);
     // gastos da sessão
     out.spent = QA('.eco-gasto').map(g => ({ c: TX(Q('b', g)), n: (g.getAttribute('title') || '').split(':')[0] }));
-    // melhor captura = a linha marcada como recorde (maior Nota)
-    const rec = Q('.capturas-linha.recorde') || Q('.capturas-linha');
-    if (rec) out.best = { name: TX(Q('.cap-nome', rec)), nv: TX(Q('.cap-nv', rec)).replace(/\D+/g, ''), n: TX(Q('.pk-selo-n', rec)).replace(/^N\s*/i, ''),
-                          iv: TX(Q('.pk-selo-iv', rec)).replace(/^IV\s*/i, ''), q: TX(Q('.pk-selo-q', rec)).replace(/^Q\s*/i, ''), p: TX(Q('.cm-pot', rec)), img: '' };
+    // melhor captura = a linha marcada como recorde (maior Nota); "última melhor" = o recorde anterior a ela
+    const NOTA = t => parseFloat(String(t || '').replace(/\./g, '').replace(',', '.')) || 0;
+    const capRow = r => { const hr = Q('.cap-hora', r); return { k: r.getAttribute('data-k') || '', rec: r.classList.contains('recorde'),
+      name: TX(Q('.cap-nome', r)), nv: TX(Q('.cap-nv', r)).replace(/\D+/g, ''), n: TX(Q('.pk-selo-n', r)).replace(/^N\s*/i, ''),
+      iv: TX(Q('.pk-selo-iv', r)).replace(/^IV\s*/i, ''), q: TX(Q('.pk-selo-q', r)).replace(/^Q\s*/i, ''), p: TX(Q('.cm-pot', r)),
+      h: hr ? (hr.getAttribute('title') || TX(hr)) : '', img: '' }; };
+    const caps = QA('.capturas-linha').map(capRow);
+    const rec = caps.find(r => r.rec) || caps[0];
+    if (rec) {
+      out.best = rec;
+      const t0 = parseInt(rec.k, 10) || 0;
+      const antes = caps.filter(r => r !== rec && t0 && (parseInt(r.k, 10) || 0) < t0).sort((a, b) => NOTA(b.n) - NOTA(a.n));
+      if (antes[0]) out.prev = antes[0];
+    }
+    // o que o automático está usando (pokébola e poção) — para o aviso de estoque baixo
+    const NUM = t => parseInt(String(t || '').replace(/\D+/g, ''), 10) || 0;
+    const chk = id => { const e = Q('#' + id); return !!(e && e.checked); };
+    const chipsOn = id => QA('#' + id + ' .auto-chip.on').map(b => ({ n: (b.getAttribute('title') || '').split(/\s[—–-]\s/)[0].trim(), q: NUM(TX(Q('.q', b))) }));
+    if (Q('#auto-ball-opts') || Q('#auto-potion-opts')) out.uso = {
+      ball: (chk('auto-ball-captura') || chk('auto-ball-sem-parar')) ? chipsOn('auto-ball-opts') : [],
+      pot: chk('auto-potion') ? chipsOn('auto-potion-opts') : [] };
     return out;
   }
   function collect(){
@@ -949,6 +1003,8 @@ button:hover{{background:#4b3642}}
 .tab.drop .nm::after{{content:' ★';color:#f5c542}}
 .tab.kick{{background:#7a1f2b;color:#fff;box-shadow:0 0 0 2px #ff6b6b inset}}
 .tab.kick .nm::before{{content:'⚠ '}}
+.tab.low{{box-shadow:0 0 0 2px #f5a142 inset}}
+.tab.low .nm::before{{content:'🎒 '}}
 .k{{font-size:11px;opacity:.6}}
 .r{{opacity:.55;padding:0 2px}} .r:hover{{opacity:1}}
 .sp{{flex:1}}
@@ -981,6 +1037,7 @@ window.__rotom=function(on){{document.getElementById('rt').classList.toggle('on'
 window.__dmode=function(t){{document.getElementById('dm').textContent='Discord: '+t;}};
 window.__twl=function(on){{document.getElementById('twx').style.display=on?'flex':'none';}};
 window.__kick=function(i,on){{var b=document.getElementById('t'+i); if(b) b.classList.toggle('kick',!!on);}};
+window.__low=function(i,t){{var b=document.getElementById('t'+i); if(!b) return; b.classList.toggle('low',!!t); b.title=t?('Acabando: '+t):('Ctrl+'+(i+1)+' · duplo clique para renomear');}};
 window.__drop=function(i,on){{var b=document.getElementById('t'+i); if(b) b.classList.toggle('drop',!!on);}};
 window.__setName=function(i,n){{var e=document.getElementById('n'+i); if(e&&!e.querySelector('input')) e.textContent=n;}};
 function ren(i){{
@@ -1058,6 +1115,18 @@ html,body{margin:0;height:100%;background:#140f13;color:#eee;font:14px 'Segoe UI
 .tw b{color:#c9b3ff}
 .twbtn{background:#9146ff;color:#fff;border:0;border-radius:6px;padding:3px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .twbtn:hover{background:#a970ff}
+.bestw{display:flex;flex-direction:column;gap:6px}
+.best .tag.iv.hi{color:#1b1418;background:linear-gradient(90deg,#f5c542,#ffe08a);font-weight:800;box-shadow:0 0 8px rgba(245,197,66,.55)}
+.best .hora{font-size:12px;color:#c9b6c4;white-space:nowrap}
+.best{flex-wrap:wrap;row-gap:4px}
+.best .tag,.best .bn,.best .nota,.best .lbl{white-space:nowrap}
+.best.prev{border-color:#4b3642;padding:4px 12px;font-size:12px;opacity:.85}
+.best.prev img{width:28px;height:28px}
+.best.prev .nota{font-size:13px}
+.shy{display:flex;align-items:center;gap:6px;border-radius:8px;padding:5px 10px;font-weight:700;color:#1b1418;background:linear-gradient(90deg,#ffe08a,#ffb3d9,#b9a2ff);box-shadow:0 0 10px rgba(255,224,138,.35)}
+.shy .sl{font-size:12px;font-weight:600}
+.shy b{font-size:15px}
+.lowb{background:#4a3410;color:#ffe2a8;border:1px solid #f5a142;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600}
 .best{display:flex;align-items:center;gap:10px;background:#1b1418;border:1px solid #6b5520;border-radius:8px;padding:6px 12px;font-size:13px}
 .best img{width:40px;height:40px;image-rendering:pixelated}
 .best .bn{font-weight:700;color:#fff}
@@ -1117,6 +1186,7 @@ function twLine(i){
   else { var tb=btn('Trocar conta'); tb.style.background='transparent'; tb.style.border='1px solid #5b3f8f'; tb.style.color='#c9b3ff'; w.appendChild(tb); }
   return w;
 }
+var LOW=[];
 function foundSig(d){ if(!d||!d.rare||d.rare.t==='') return null; var n=parseInt(d.rare.t,10); return isNaN(n)?null:n; }
 var g=document.getElementById('g');
 function el(t,c,txt){var e=document.createElement(t); if(c) e.className=c; if(txt!=null) e.textContent=txt; return e;}
@@ -1134,6 +1204,7 @@ function render(i){
   if(d.bonus) h.appendChild(el('span','bonus','XP '+d.bonus));
   if(d.timer){ var tme=el('span','tm',d.timer); tme.setAttribute('data-sec',String(tsec(d.timer))); tme.setAttribute('data-t0',String(SEEN[i]||Date.now())); h.appendChild(tme); }
   c.appendChild(h);
+  if(LOW[i]&&LOW[i].length) c.appendChild(el('div','lowb','🎒 Acabando: '+LOW[i].join(' · ')));
   if(d.kick) c.appendChild(el('div','warn','⚠ Conta desconectada: aberta em outro lugar. O farm desta conta pode ter parado. Clique para abrir.'));
   var dup=[]; NAMES.forEach(function(n,j){ if(j!==i && n && n===NAMES[i] && !/^Conta \d+$/.test(n)) dup.push(j+1); });
   if(dup.length) c.appendChild(el('div','warn','⚠ Mesma conta da aba '+dup.join(', ')+': uma derruba a outra. Entre com outro alt numa delas.'));
@@ -1189,15 +1260,23 @@ function render(i){
     st.appendChild(b);
   });
   c.appendChild(st);
+  function capLine(x,cls,label){
+    var bc=el('div',cls); bc.appendChild(el('span','lbl',label));
+    var bsrc=x.img||sdSprite(x.name); if(bsrc){var bim=document.createElement('img'); bim.src=bsrc; bim.onerror=function(){this.remove()}; bc.appendChild(bim);}
+    bc.appendChild(el('span','bn',(x.name||'?')+(x.nv?' Nv '+x.nv:'')));
+    bc.appendChild(el('span','nota','Nota '+x.n));
+    if(x.iv){ var ivn=parseInt(x.iv,10)||0, med=ivn/6;
+      var ivt=el('span','tag iv'+(med>=28?' hi':''),(med>=28?'★ ':'')+'IV '+x.iv+' · méd. '+med.toFixed(1).replace('.',','));
+      ivt.title='Soma dos 6 IVs (máx. 192). Média 28 ou mais fica em destaque.'; bc.appendChild(ivt); }
+    if(x.q) bc.appendChild(el('span','tag','Q '+x.q));
+    if(x.p) bc.appendChild(el('span','tag',x.p));
+    if(x.h){ bc.appendChild(el('span','sp')); bc.appendChild(el('span','hora','🕒 '+x.h)); }
+    return bc;
+  }
   if(d.best&&d.best.n){
-    var bc=el('div','best'); bc.appendChild(el('span','lbl','Melhor captura'));
-    var bsrc=d.best.img||sdSprite(d.best.name); if(bsrc){var bim=document.createElement('img'); bim.src=bsrc; bim.onerror=function(){this.remove()}; bc.appendChild(bim);}
-    bc.appendChild(el('span','bn',(d.best.name||'?')+(d.best.nv?' Nv '+d.best.nv:'')));
-    bc.appendChild(el('span','nota','Nota '+d.best.n));
-    if(d.best.iv) bc.appendChild(el('span','tag','IV '+d.best.iv));
-    if(d.best.q) bc.appendChild(el('span','tag','Q '+d.best.q));
-    if(d.best.p) bc.appendChild(el('span','tag',d.best.p));
-    c.appendChild(bc);
+    var bw=el('div','bestw'); bw.appendChild(capLine(d.best,'best','Melhor captura'));
+    if(d.prev&&d.prev.n) bw.appendChild(capLine(d.prev,'best prev','Última melhor'));
+    c.appendChild(bw);
   }
   var row=el('div','row');
   if(d.items&&d.items.length){
@@ -1213,6 +1292,8 @@ function render(i){
   if((d.found&&d.found.length)||(d.rare&&d.rare.t)){
     var fd=el('div','fd'); fd.appendChild(el('span','lbl','Achados'+(d.foundIn?' · '+d.foundIn:'')));
     (d.found||[]).forEach(function(x){
+      if(x.shiny){ var sh=el('div','shy'); sh.title=x.n||''; sh.appendChild(el('span',null,'✨'));
+        sh.appendChild(el('span','sl',/vistos/i.test((x.campo||'')+(x.n||''))?'Shiny vistos':'Shiny pegos')); sh.appendChild(el('b',null,x.c)); fd.appendChild(sh); return; }
       var b=el('div','i'); b.title=x.n||'';
       if(x.img){var im=document.createElement('img'); im.src=x.img; b.appendChild(im);}
       b.appendChild(el('span',null,'×'+x.c)); fd.appendChild(b);
@@ -1222,7 +1303,7 @@ function render(i){
   }
   if(row.children.length) c.appendChild(row);
 }
-var KEEP=['stats','items','pl','pk','bon','found','rare','hunt','timer','bonus'];
+var KEEP=['stats','items','pl','pk','bon','found','rare','hunt','timer','bonus','prev'];
 function emptyVal(v){ return v===undefined||v===null||v===''||(Array.isArray(v)&&v.length===0); }
 var KICKED=[];
 window.__upd=function(i,d){
@@ -1241,6 +1322,7 @@ window.__upd=function(i,d){
   SEEN[i]=Date.now(); DATA[i]=d; render(i);
 };
 window.__clear=function(i){ALERT[i]=false; render(i);};
+window.__low=function(i,l){LOW[i]=l||[]; render(i);};
 window.__tw=function(i,t){TW[i]=t; render(i);};
 window.__kk=function(i,t){ if(t&&t.lives) { if(!KK[i]) KK[i]={}; render(i); return; } if(!KK[i]) KK[i]={}; KK[i][(t&&t.slot)||0]=t; render(i);};
 window.__kkN=function(i,n){KKN[i]=n; if(KK[i]) for(var k in KK[i]) if(+k>=n) delete KK[i][k]; render(i);};
@@ -1579,6 +1661,7 @@ fn main() {
     // ---- Discord Rich Presence
     let rpc = if cfg.discord && !cfg.discord_id.trim().is_empty() { Some(discord::spawn(cfg.discord_id.trim().to_string())) } else { None };
     let mut last_stats: Vec<Option<serde_json::Value>> = vec![None; games.len()];
+    let mut baixos: Vec<Vec<String>> = vec![Vec::new(); games.len()]; // aviso de bola/poção acabando
     let mut last_presence: Option<discord::Presence> = None;
     let (mut rpc_ticks, mut rpc_rot) = (0usize, 0usize);
 
@@ -1813,9 +1896,21 @@ fn main() {
                         if let (Some(slot), Ok(mut v)) = (last_stats.get_mut(i), serde_json::from_str::<serde_json::Value>(&j)) {
                             // o jogo às vezes redesenha no meio da leitura: mantém o último valor bom de cada campo
                             if let (Some(old), Some(obj)) = (slot.as_ref(), v.as_object_mut()) {
-                                for k in ["stats", "pl", "pk", "hunt", "timer", "bonus", "rare", "best", "items"] {
+                                for k in ["stats", "pl", "pk", "hunt", "timer", "bonus", "rare", "best", "items", "prev", "uso"] {
                                     let vazio = match obj.get(k) { None | Some(serde_json::Value::Null) => true, Some(serde_json::Value::String(x)) => x.is_empty(), Some(serde_json::Value::Array(a)) => a.is_empty(), _ => false };
                                     if vazio { if let Some(o) = old.get(k) { obj.insert(k.into(), o.clone()); } }
+                                }
+                            }
+                            // bola/poção do automático acabando? (avisa na aba, na grade e piscando a barra de tarefas)
+                            let low = itens_baixos(&v, cfg.alerta_bola, cfg.alerta_pocao);
+                            if let Some(prev) = baixos.get_mut(i) {
+                                let novo = low.iter().any(|x| !prev.iter().any(|p| p.split(' ').next() == x.split(' ').next()));
+                                if &low != prev {
+                                    let txt = serde_json::to_string(&low.join(" · ")).unwrap();
+                                    let _ = toolbar.evaluate_script(&format!("window.__low&&window.__low({},{})", i, txt));
+                                    let _ = dash.evaluate_script(&format!("window.__low&&window.__low({},{})", i, serde_json::to_string(&low).unwrap()));
+                                    if novo { logf!("conta{}: acabando {:?}", i + 1, low); window.request_user_attention(Some(tao::window::UserAttentionType::Informational)); }
+                                    *prev = low;
                                 }
                             }
                             *slot = Some(v);

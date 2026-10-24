@@ -30,7 +30,8 @@ Quem joga com várias contas sabe: 4 abas do jogo + 7 lives da Twitch abertas no
 | ▦ **Painel em grade** | As 4 contas lado a lado: XP/h, lucro/h, abates, capturas, "upa em X min", bônus ativos, melhor captura, itens e drops raros. |
 | 🎯 **Extensões** | Carrega a **/hunt for PokeIdle** e a **Rotom Sniper** (Cockpit no botão 🎯 ou `Ctrl+P`). |
 | 🎮 **Discord** | Mostra no seu perfil o Pokémon em campo, nível, onde está caçando e o tempo de sessão. |
-| 🔔 **Avisos** | Drop raro novo (★), conta derrubada (⚠), conta repetida em duas abas e versão nova do app. |
+| 🔔 **Avisos sem abrir a grade** | Pokébola ou poção do automático acabando (🎒 na aba + a barra de tarefas pisca), drop raro novo (★), conta derrubada (⚠), conta repetida e versão nova do app. |
+| 🏆 **Capturas** | Melhor captura com horário e IV em destaque (média 28+), e a *última melhor* logo abaixo. ✨ Shiny vistos e pegos em destaque. |
 
 ---
 
@@ -209,6 +210,8 @@ Clique em **⚙** para abrir a pasta. **Feche o app antes de editar.**
 | `memoria_baixa` | `false` | Enxuga a memória das contas fora da vista |
 | `mostrar_insta` | `true` | Botão do Instagram do autor na barra |
 | `repo_github` | `sourafaelads/pokeidle` | Onde procurar versão nova (`""` = não procurar) |
+| `alerta_bola` | `10000` | Avisa quando as pokébolas marcadas no automático somarem menos que isso (`0` = desligado) |
+| `alerta_pocao` | `10000` | O mesmo para as poções do automático |
 | `kick_max` | `1` | Lives da Kick por conta (só na versão Kick) |
 
 ---
