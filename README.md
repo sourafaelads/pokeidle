@@ -31,7 +31,7 @@ Quem joga com várias contas sabe: 4 abas do jogo + 7 lives da Twitch abertas no
 | 🎯 **Extensões** | Carrega a **/hunt for PokeIdle** e a **Rotom Sniper** (Cockpit no botão 🎯 ou `Ctrl+P`). |
 | 🎮 **Discord** | Mostra no seu perfil o Pokémon em campo, nível, onde está caçando e o tempo de sessão. |
 | 🔔 **Avisos sem abrir a grade** | Pokébola ou poção do automático acabando (🎒 na aba + a barra de tarefas pisca), drop raro novo (★), conta derrubada (⚠), conta repetida e versão nova do app. |
-| 🏆 **Capturas** | Melhor captura com horário e IV em destaque (média 28+), e a *última melhor* logo abaixo. ✨ Shiny vistos e pegos em destaque. |
+| 🏆 **Capturas** | Melhor captura com horário, **nota na evolução final** (verde quando passa de 3,5 — o mínimo do Mercado), IV de cada stat com 28+ em destaque e a *última melhor* logo abaixo. Recorde novo 3,5+ avisa na aba (🏆). ✨ Shiny vistos e pegos em destaque. |
 
 ---
 

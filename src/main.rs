@@ -124,7 +124,7 @@ fn itens_baixos(v: &serde_json::Value, lim_bola: u64, lim_pocao: u64) -> Vec<Str
 
 const INSTA: &str = "sourafaelads";
 /// Versão deste app (compare com a "tag" da Release no GitHub, ex.: v0.37)
-const VERSAO: &str = "0.40";
+const VERSAO: &str = "0.41";
 /// Repositório onde saem as versões novas (Releases)
 const REPO_PADRAO: &str = "sourafaelads/pokeidle";
 fn repo_padrao() -> String { REPO_PADRAO.into() }
@@ -532,6 +532,7 @@ enum Msg {
     Nick(usize, String),
     Stats(usize, String),
     Drop(usize),
+    Top(usize),
     Kick(usize, bool),
     TwLogin(usize),
     KickLogin(usize),
@@ -575,6 +576,7 @@ fn parse_msg(s: &str) -> Option<Msg> {
     if s == "reload:all" { return Some(Msg::Reload(None)); }
     if let Some(n) = s.strip_prefix("tab:") { return n.parse().ok().map(Msg::Tab); }
     if let Some(n) = s.strip_prefix("drop:") { return n.parse().ok().map(Msg::Drop); }
+    if let Some(n) = s.strip_prefix("top:") { return n.parse().ok().map(Msg::Top); }
     if let Some(r) = s.strip_prefix("kick:") {
         let (i, on) = r.split_once(':')?;
         return i.parse().ok().map(|i| Msg::Kick(i, on == "1"));
@@ -839,6 +841,8 @@ const GAME_SCRIPT: &str = r#"(function(){
       const t0 = parseInt(rec.k, 10) || 0;
       const antes = caps.filter(r => r !== rec && t0 && (parseInt(r.k, 10) || 0) < t0).sort((a, b) => NOTA(b.n) - NOTA(a.n));
       if (antes[0]) out.prev = antes[0];
+      const CC = window.__hubCalc || {};
+      for (const x of [out.best, out.prev]) { if (!x) continue; const c = CC[x.k]; if (c) { x.fin = c.fin; x.ivs = c.ivs; } else if (x === out.best) x.pend = 1; }
     }
     // o que o automático está usando (pokébola e poção) — para o aviso de estoque baixo
     const NUM = t => parseInt(String(t || '').replace(/\D+/g, ''), 10) || 0;
@@ -954,6 +958,40 @@ const GAME_SCRIPT: &str = r#"(function(){
   }
   window.__hubDump = function(){ if (window.ipc) window.ipc.postMessage('dump:' + document.documentElement.outerHTML); };
   let lastStats = '', watch = false, timer = null;
+  // --- Nota na evolução final + IV de cada stat do recorde novo.
+  //     Abre a ficha e a calculadora do jogo, lê e fecha — só com a conta fora da vista e sem nenhuma janela do jogo aberta.
+  window.__hubCalc = (function(){ try { return JSON.parse(localStorage.getItem('__hubCalc') || '{}') || {}; } catch (_) { return {}; } })();
+  function saveCalc(){ try { const ks = Object.keys(window.__hubCalc); while (ks.length > 60) delete window.__hubCalc[ks.shift()]; localStorage.setItem('__hubCalc', JSON.stringify(window.__hubCalc)); } catch (_) {} }
+  const T = e => e ? (e.textContent || '').replace(/\s+/g, ' ').trim() : '';
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  async function until(fn, ms){ const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = fn(); if (v) return v; await sleep(150); } return null; }
+  const aberto = id => { const m = document.getElementById(id); return m && !m.classList.contains('hidden') ? m : null; };
+  let probing = false; const falhas = {};
+  async function probe(){
+    if (probing) return;
+    if (document.visibilityState !== 'hidden' && document.hasFocus()) return; // alguém está olhando esta conta
+    const row = document.querySelector('.capturas-linha.recorde'); if (!row) return;
+    const k = row.getAttribute('data-k'); if (!k || window.__hubCalc[k] || (falhas[k] || 0) >= 3) return;
+    if ([...document.querySelectorAll('.modal[id]')].some(m => !m.classList.contains('hidden'))) return; // não atrapalha o que estiver aberto
+    probing = true;
+    try {
+      row.click();
+      if (!await until(() => aberto('ficha') && document.getElementById('fi-calc'), 5000)) throw 0;
+      const ivs = [...document.querySelectorAll('#ficha-corpo .fi-stats:not(.fi-stats-refino) .fi-stat')]
+        .map(x => ({ s: T(x.querySelector('.fi-stat-nome')), v: parseInt(T(x.querySelector('.fi-iv')).replace(/\D+/g, ''), 10) || 0 })).filter(x => x.s && x.v);
+      document.getElementById('fi-calc').click();
+      if (!await until(() => aberto('calc') && document.getElementById('calc-valor'), 5000)) throw 0;
+      await sleep(700); // a calculadora termina de preencher
+      const fin = [...document.querySelectorAll('#calc-potencial .calc-pot-card, #calc-potencial-mega:not(.hidden) .calc-pot-card')]
+        .map(c => ({ nome: T(c.querySelector('.calc-pot-card-nome')), n: T(c.querySelector('.calc-pot-card-nota b')), mega: !!c.closest('#calc-potencial-mega') })).filter(x => x.nome && x.n);
+      window.__hubCalc[k] = { fin, ivs }; saveCalc();
+    } catch (_) { falhas[k] = (falhas[k] || 0) + 1; }
+    if (aberto('calc')) { const b = document.getElementById('calc-fechar'); if (b) b.click(); await sleep(250); }
+    if (aberto('ficha')) { const b = document.getElementById('ficha-fechar'); if (b) b.click(); }
+    probing = false;
+  }
+  setInterval(() => { probe().catch(() => { probing = false; }); }, 8000);
+
   function statsTick(){
     if (window.ipc) {
       const j = JSON.stringify(collect());
@@ -1005,6 +1043,8 @@ button:hover{{background:#4b3642}}
 .tab.kick .nm::before{{content:'⚠ '}}
 .tab.low{{box-shadow:0 0 0 2px #f5a142 inset}}
 .tab.low .nm::before{{content:'🎒 '}}
+.tab.top{{box-shadow:0 0 0 2px #6ee7a0 inset}}
+.tab.top .nm::before{{content:'🏆 '}}
 .k{{font-size:11px;opacity:.6}}
 .r{{opacity:.55;padding:0 2px}} .r:hover{{opacity:1}}
 .sp{{flex:1}}
@@ -1038,6 +1078,7 @@ window.__dmode=function(t){{document.getElementById('dm').textContent='Discord: 
 window.__twl=function(on){{document.getElementById('twx').style.display=on?'flex':'none';}};
 window.__kick=function(i,on){{var b=document.getElementById('t'+i); if(b) b.classList.toggle('kick',!!on);}};
 window.__low=function(i,t){{var b=document.getElementById('t'+i); if(!b) return; b.classList.toggle('low',!!t); b.title=t?('Acabando: '+t):('Ctrl+'+(i+1)+' · duplo clique para renomear');}};
+window.__top=function(i,on){{var b=document.getElementById('t'+i); if(b) b.classList.toggle('top',!!on);}};
 window.__drop=function(i,on){{var b=document.getElementById('t'+i); if(b) b.classList.toggle('drop',!!on);}};
 window.__setName=function(i,n){{var e=document.getElementById('n'+i); if(e&&!e.querySelector('input')) e.textContent=n;}};
 function ren(i){{
@@ -1126,6 +1167,14 @@ html,body{margin:0;height:100%;background:#140f13;color:#eee;font:14px 'Segoe UI
 .shy{display:flex;align-items:center;gap:6px;border-radius:8px;padding:5px 10px;font-weight:700;color:#1b1418;background:linear-gradient(90deg,#ffe08a,#ffb3d9,#b9a2ff);box-shadow:0 0 10px rgba(255,224,138,.35)}
 .shy .sl{font-size:12px;font-weight:600}
 .shy b{font-size:15px}
+.best .ivs{display:flex;gap:4px;flex-wrap:wrap}
+.best .ivc{font-size:11px;color:#a58ea0;background:#2a1d25;border-radius:4px;padding:1px 5px;white-space:nowrap}
+.best .ivc.hi{color:#1b1418;background:#f5c542;font-weight:800}
+.best .fin{font-size:12px;font-weight:700;border-radius:5px;padding:2px 7px;white-space:nowrap}
+.best .fin.ok{color:#0f2a17;background:linear-gradient(90deg,#6ee7a0,#b6f5c9);box-shadow:0 0 8px rgba(110,231,160,.45)}
+.best .fin.no{color:#a58ea0;background:#2a1d25;font-weight:600}
+.best .fin.wait{color:#a58ea0;background:transparent;border:1px dashed #4b3642;font-weight:500}
+.topb{background:#123a22;color:#c9ffd9;border:1px solid #6ee7a0;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700}
 .lowb{background:#4a3410;color:#ffe2a8;border:1px solid #f5a142;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:600}
 .best{display:flex;align-items:center;gap:10px;background:#1b1418;border:1px solid #6b5520;border-radius:8px;padding:6px 12px;font-size:13px}
 .best img{width:40px;height:40px;image-rendering:pixelated}
@@ -1186,7 +1235,10 @@ function twLine(i){
   else { var tb=btn('Trocar conta'); tb.style.background='transparent'; tb.style.border='1px solid #5b3f8f'; tb.style.color='#c9b3ff'; w.appendChild(tb); }
   return w;
 }
-var LOW=[];
+var LOW=[], TOP=[], TOPBASE=[];
+function bestFinal(b){ if(!b||!b.fin) return null; var f=function(t){return parseFloat(String(t).replace(/\./g,'').replace(',','.'))||0;};
+  if(!b.fin.length) return {v:f(b.n), t:b.name+' '+b.n};
+  var m=null; b.fin.forEach(function(x){ var v=f(x.n); if(!m||v>m.v) m={v:v, t:b.name+' → '+x.nome+' '+x.n}; }); return m; }
 function foundSig(d){ if(!d||!d.rare||d.rare.t==='') return null; var n=parseInt(d.rare.t,10); return isNaN(n)?null:n; }
 var g=document.getElementById('g');
 function el(t,c,txt){var e=document.createElement(t); if(c) e.className=c; if(txt!=null) e.textContent=txt; return e;}
@@ -1204,6 +1256,7 @@ function render(i){
   if(d.bonus) h.appendChild(el('span','bonus','XP '+d.bonus));
   if(d.timer){ var tme=el('span','tm',d.timer); tme.setAttribute('data-sec',String(tsec(d.timer))); tme.setAttribute('data-t0',String(SEEN[i]||Date.now())); h.appendChild(tme); }
   c.appendChild(h);
+  if(TOP[i]) c.appendChild(el('div','topb','🏆 Captura que passa de 3,5 na forma final: '+TOP[i]));
   if(LOW[i]&&LOW[i].length) c.appendChild(el('div','lowb','🎒 Acabando: '+LOW[i].join(' · ')));
   if(d.kick) c.appendChild(el('div','warn','⚠ Conta desconectada: aberta em outro lugar. O farm desta conta pode ter parado. Clique para abrir.'));
   var dup=[]; NAMES.forEach(function(n,j){ if(j!==i && n && n===NAMES[i] && !/^Conta \d+$/.test(n)) dup.push(j+1); });
@@ -1270,6 +1323,12 @@ function render(i){
       ivt.title='Soma dos 6 IVs (máx. 192). Média 28 ou mais fica em destaque.'; bc.appendChild(ivt); }
     if(x.q) bc.appendChild(el('span','tag','Q '+x.q));
     if(x.p) bc.appendChild(el('span','tag',x.p));
+    if(x.fin){
+      if(x.fin.length) x.fin.forEach(function(f){ var v=num(f.n); var t=el('span','fin '+(v>=3.5?'ok':'no'),'→ '+(f.mega&&!/^mega/i.test(f.nome)?'Mega ':'')+f.nome+' '+f.n);
+        t.title=v>=3.5?'Na forma final passa de 3,5 — entra no Mercado da Comunidade':'Na forma final fica abaixo de 3,5'; bc.appendChild(t); });
+      else { var v0=num(x.n); bc.appendChild(el('span','fin '+(v0>=3.5?'ok':'no'),'forma final')); }
+    } else if(x.pend) bc.appendChild(el('span','fin wait','→ calculando forma final…'));
+    if(x.ivs&&x.ivs.length){ var ivw=el('span','ivs'); x.ivs.forEach(function(st){ var ch=el('span','ivc'+(st.v>=28?' hi':''),st.s+' '+st.v); ivw.appendChild(ch); }); bc.appendChild(ivw); }
     if(x.h){ bc.appendChild(el('span','sp')); bc.appendChild(el('span','hora','🕒 '+x.h)); }
     return bc;
   }
@@ -1319,8 +1378,14 @@ window.__upd=function(i,d){
     else if(sig>BASE[i]){ BASE[i]=sig; ALERT[i]=true; window.ipc.postMessage('drop:'+i); }
     else if(sig<BASE[i]) BASE[i]=sig; // sessão resetada
   }
+  // recorde novo que passa de 3,5 na forma final → aviso
+  if(d&&d.best&&d.best.k){
+    if(TOPBASE[i]===undefined) TOPBASE[i]=d.best.k;
+    else if(d.best.k!==TOPBASE[i]){ var bf=bestFinal(d.best); if(bf){ TOPBASE[i]=d.best.k; if(bf.v>=3.5){ TOP[i]=bf.t; window.ipc.postMessage('top:'+i); } } }
+  }
   SEEN[i]=Date.now(); DATA[i]=d; render(i);
 };
+window.__clearTop=function(i){TOP[i]=''; render(i);};
 window.__clear=function(i){ALERT[i]=false; render(i);};
 window.__low=function(i,l){LOW[i]=l||[]; render(i);};
 window.__tw=function(i,t){TW[i]=t; render(i);};
@@ -1698,8 +1763,8 @@ fn main() {
                         if rotom.as_ref().map_or(false, |r| r.0 != i) { rotom = None; let _ = toolbar.evaluate_script("window.__rotom&&window.__rotom(false)"); }
                         twl = None; kkl = None; if let Some(k) = kshow.take() { if let Some(w) = kk.get(k).and_then(|v| v.first()) { let _ = w.set_bounds(rect(OFFSCREEN, 40, 480, 270)); } }
                         lay.active = i; lay.grid = false;
-                        let _ = toolbar.evaluate_script(&format!("window.__drop&&window.__drop({},false)", i));
-                        let _ = dash.evaluate_script(&format!("window.__clear&&window.__clear({})", i));
+                        let _ = toolbar.evaluate_script(&format!("window.__drop&&window.__drop({},false);window.__top&&window.__top({},false)", i, i));
+                        let _ = dash.evaluate_script(&format!("window.__clear&&window.__clear({});window.__clearTop&&window.__clearTop({})", i, i));
                     }
                     Msg::Tab(_) => {}
                     Msg::Grid => lay.grid = !lay.grid,
@@ -1885,6 +1950,11 @@ fn main() {
                             logf!("conta{}: aviso de conta aberta em outro lugar", i + 1);
                             window.request_user_attention(Some(tao::window::UserAttentionType::Critical));
                         }
+                        return;
+                    }
+                    Msg::Top(i) => {
+                        let _ = toolbar.evaluate_script(&format!("window.__top&&window.__top({},true)", i));
+                        window.request_user_attention(Some(tao::window::UserAttentionType::Informational));
                         return;
                     }
                     Msg::Drop(i) => {
