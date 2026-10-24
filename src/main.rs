@@ -960,8 +960,8 @@ const GAME_SCRIPT: &str = r#"(function(){
   let lastStats = '', watch = false, timer = null;
   // --- Nota na evolução final + IV de cada stat do recorde novo.
   //     Abre a ficha e a calculadora do jogo, lê e fecha — só com a conta fora da vista e sem nenhuma janela do jogo aberta.
-  window.__hubCalc = (function(){ try { return JSON.parse(localStorage.getItem('__hubCalc') || '{}') || {}; } catch (_) { return {}; } })();
-  function saveCalc(){ try { const ks = Object.keys(window.__hubCalc); while (ks.length > 60) delete window.__hubCalc[ks.shift()]; localStorage.setItem('__hubCalc', JSON.stringify(window.__hubCalc)); } catch (_) {} }
+  window.__hubCalc = (function(){ try { return JSON.parse(localStorage.getItem('__hubCalc2') || '{}') || {}; } catch (_) { return {}; } })();
+  function saveCalc(){ try { const ks = Object.keys(window.__hubCalc); while (ks.length > 60) delete window.__hubCalc[ks.shift()]; localStorage.setItem('__hubCalc2', JSON.stringify(window.__hubCalc)); } catch (_) {} }
   const T = e => e ? (e.textContent || '').replace(/\s+/g, ' ').trim() : '';
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   async function until(fn, ms){ const t0 = Date.now(); while (Date.now() - t0 < ms) { const v = fn(); if (v) return v; await sleep(150); } return null; }
@@ -979,11 +979,16 @@ const GAME_SCRIPT: &str = r#"(function(){
       if (!await until(() => aberto('ficha') && document.getElementById('fi-calc'), 5000)) throw 0;
       const ivs = [...document.querySelectorAll('#ficha-corpo .fi-stats:not(.fi-stats-refino) .fi-stat')]
         .map(x => ({ s: T(x.querySelector('.fi-stat-nome')), v: parseInt(T(x.querySelector('.fi-iv')).replace(/\D+/g, ''), 10) || 0 })).filter(x => x.s && x.v);
+      // tem evolução? (a ficha mostra a cadeia com os próximos estágios)
+      const temEvo = !!document.querySelector('#ficha-corpo .fi-cadeia-destinos .fi-cadeia-no');
       document.getElementById('fi-calc').click();
       if (!await until(() => aberto('calc') && document.getElementById('calc-valor'), 5000)) throw 0;
-      await sleep(700); // a calculadora termina de preencher
+      // espera os cartões da última etapa aparecerem (a calculadora carrega a espécie final depois)
+      if (temEvo) await until(() => document.querySelector('#calc-potencial .calc-pot-card .calc-pot-card-nota b'), 6000);
+      await sleep(400);
       const fin = [...document.querySelectorAll('#calc-potencial .calc-pot-card, #calc-potencial-mega:not(.hidden) .calc-pot-card')]
         .map(c => ({ nome: T(c.querySelector('.calc-pot-card-nome')), n: T(c.querySelector('.calc-pot-card-nota b')), mega: !!c.closest('#calc-potencial-mega') })).filter(x => x.nome && x.n);
+      if (temEvo && !fin.length) throw 0; // ainda não carregou: tenta de novo depois
       window.__hubCalc[k] = { fin, ivs }; saveCalc();
     } catch (_) { falhas[k] = (falhas[k] || 0) + 1; }
     if (aberto('calc')) { const b = document.getElementById('calc-fechar'); if (b) b.click(); await sleep(250); }
@@ -1164,9 +1169,9 @@ html,body{margin:0;height:100%;background:#140f13;color:#eee;font:14px 'Segoe UI
 .best.prev{border-color:#4b3642;padding:4px 12px;font-size:12px;opacity:.85}
 .best.prev img{width:28px;height:28px}
 .best.prev .nota{font-size:13px}
-.shy{display:flex;align-items:center;gap:6px;border-radius:8px;padding:5px 10px;font-weight:700;color:#1b1418;background:linear-gradient(90deg,#ffe08a,#ffb3d9,#b9a2ff);box-shadow:0 0 10px rgba(255,224,138,.35)}
-.shy .sl{font-size:12px;font-weight:600}
-.shy b{font-size:15px}
+.shy{color:#f5c542}
+.shy .sx{font-size:14px}
+.shy .sl{font-size:12px;font-weight:600;color:#c9b6c4}
 .best .ivs{display:flex;gap:4px;flex-wrap:wrap}
 .best .ivc{font-size:11px;color:#a58ea0;background:#2a1d25;border-radius:4px;padding:1px 5px;white-space:nowrap}
 .best .ivc.hi{color:#1b1418;background:#f5c542;font-weight:800}
@@ -1241,7 +1246,7 @@ var LOW=[], TOP=[], TOPBASE=[];
 function bestFinal(b){ if(!b||!b.fin) return null; var f=function(t){return parseFloat(String(t).replace(/\./g,'').replace(',','.'))||0;};
   if(!b.fin.length) return {v:f(b.n), t:b.name+' '+b.n};
   var m=null; b.fin.forEach(function(x){ var v=f(x.n); if(!m||v>m.v) m={v:v, t:b.name+' → '+x.nome+' '+x.n}; }); return m; }
-function foundSig(d){ if(!d||!d.rare||d.rare.t==='') return null; var n=parseInt(d.rare.t,10); return isNaN(n)?null:n; }
+function foundSig(d){ if(!d||!d.found) return null; var t=0; d.found.forEach(function(x){ if(!x.shiny) t+=parseInt(String(x.c).replace(/\D+/g,''),10)||0; }); return t; }
 var g=document.getElementById('g');
 function el(t,c,txt){var e=document.createElement(t); if(c) e.className=c; if(txt!=null) e.textContent=txt; return e;}
 function render(i){
@@ -1316,7 +1321,7 @@ function render(i){
   c.appendChild(st);
   function capLine(x,cls,label){
     var bc=el('div',cls); bc.appendChild(el('span','lbl',label));
-    var bsrc=x.img||sdSprite(x.name); if(bsrc){var bim=document.createElement('img'); bim.src=bsrc; bim.onerror=function(){this.remove()}; bc.appendChild(bim);}
+    var bsrc=/prev/.test(cls)?'':(x.img||sdSprite(x.name)); if(bsrc){var bim=document.createElement('img'); bim.src=bsrc; bim.onerror=function(){this.remove()}; bc.appendChild(bim);}
     // destaque = nota na última etapa (quando já calculada); a nota atual fica pequena ao lado
     var fl=null; if(x.fin){ if(x.fin.length){ x.fin.forEach(function(f){ var v=num(f.n); if(!fl||v>fl.v) fl={v:v,nome:(f.mega&&!/^mega/i.test(f.nome)?'Mega ':'')+f.nome,n:f.n}; }); } else fl={v:num(x.n),nome:x.name,n:x.n}; }
     if(fl&&fl.nome!==x.name){
@@ -1343,26 +1348,15 @@ function render(i){
     c.appendChild(bw);
   }
   var row=el('div','row');
-  if(d.items&&d.items.length){
-    var it=el('div','it');
-    d.items.forEach(function(x){
-      var n=parseInt(String(x.c).replace(/[.,]/g,''),10);
-      var b=el('div','i'+(n<100?' low':'')); b.title=x.n||'';
-      if(x.img){var im=document.createElement('img'); im.src=x.img; b.appendChild(im);}
-      b.appendChild(el('span',null,'×'+x.c)); it.appendChild(b);
-    });
-    row.appendChild(it);
-  }
-  if((d.found&&d.found.length)||(d.rare&&d.rare.t)){
+  if(d.found&&d.found.length){
     var fd=el('div','fd'); fd.appendChild(el('span','lbl','Achados'+(d.foundIn?' · '+d.foundIn:'')));
     (d.found||[]).forEach(function(x){
-      if(x.shiny){ var sh=el('div','shy'); sh.title=x.n||''; sh.appendChild(el('span',null,'✨'));
-        sh.appendChild(el('span','sl',/vistos/i.test((x.campo||'')+(x.n||''))?'Shiny vistos':'Shiny pegos')); sh.appendChild(el('b',null,x.c)); fd.appendChild(sh); return; }
+      if(x.shiny){ var sh=el('div','i shy'); sh.title=x.n||''; sh.appendChild(el('span','sx','✨'));
+        sh.appendChild(el('span','sl',/vistos/i.test((x.campo||'')+(x.n||''))?'shiny vistos':'shiny pegos')); sh.appendChild(el('span',null,x.c)); fd.appendChild(sh); return; }
       var b=el('div','i'); b.title=x.n||'';
       if(x.img){var im=document.createElement('img'); im.src=x.img; b.appendChild(im);}
       b.appendChild(el('span',null,'×'+x.c)); fd.appendChild(b);
     });
-    if(d.rare&&d.rare.t) fd.appendChild(el('span','rare','Itens raros: '+d.rare.t+(d.rare.p?' (+'+d.rare.p+' nesta sessão)':'')));
     row.appendChild(fd);
   }
   if(row.children.length) c.appendChild(row);
