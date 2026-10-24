@@ -1171,6 +1171,8 @@ html,body{margin:0;height:100%;background:#140f13;color:#eee;font:14px 'Segoe UI
 .best .ivc{font-size:11px;color:#a58ea0;background:#2a1d25;border-radius:4px;padding:1px 5px;white-space:nowrap}
 .best .ivc.hi{color:#1b1418;background:#f5c542;font-weight:800}
 .best .fin{font-size:12px;font-weight:700;border-radius:5px;padding:2px 7px;white-space:nowrap}
+.best .nota.fin{font-size:15px;padding:1px 8px}
+.best.prev .nota.fin{font-size:13px}
 .best .fin.ok{color:#0f2a17;background:linear-gradient(90deg,#6ee7a0,#b6f5c9);box-shadow:0 0 8px rgba(110,231,160,.45)}
 .best .fin.no{color:#a58ea0;background:#2a1d25;font-weight:600}
 .best .fin.wait{color:#a58ea0;background:transparent;border:1px dashed #4b3642;font-weight:500}
@@ -1256,7 +1258,6 @@ function render(i){
   if(d.bonus) h.appendChild(el('span','bonus','XP '+d.bonus));
   if(d.timer){ var tme=el('span','tm',d.timer); tme.setAttribute('data-sec',String(tsec(d.timer))); tme.setAttribute('data-t0',String(SEEN[i]||Date.now())); h.appendChild(tme); }
   c.appendChild(h);
-  if(TOP[i]) c.appendChild(el('div','topb','🏆 Captura que passa de 3,5 na forma final: '+TOP[i]));
   if(LOW[i]&&LOW[i].length) c.appendChild(el('div','lowb','🎒 Acabando: '+LOW[i].join(' · ')));
   if(d.kick) c.appendChild(el('div','warn','⚠ Conta desconectada: aberta em outro lugar. O farm desta conta pode ter parado. Clique para abrir.'));
   var dup=[]; NAMES.forEach(function(n,j){ if(j!==i && n && n===NAMES[i] && !/^Conta \d+$/.test(n)) dup.push(j+1); });
@@ -1316,18 +1317,22 @@ function render(i){
   function capLine(x,cls,label){
     var bc=el('div',cls); bc.appendChild(el('span','lbl',label));
     var bsrc=x.img||sdSprite(x.name); if(bsrc){var bim=document.createElement('img'); bim.src=bsrc; bim.onerror=function(){this.remove()}; bc.appendChild(bim);}
-    bc.appendChild(el('span','bn',(x.name||'?')+(x.nv?' Nv '+x.nv:'')));
-    bc.appendChild(el('span','nota','Nota '+x.n));
+    // destaque = nota na última etapa (quando já calculada); a nota atual fica pequena ao lado
+    var fl=null; if(x.fin){ if(x.fin.length){ x.fin.forEach(function(f){ var v=num(f.n); if(!fl||v>fl.v) fl={v:v,nome:(f.mega&&!/^mega/i.test(f.nome)?'Mega ':'')+f.nome,n:f.n}; }); } else fl={v:num(x.n),nome:x.name,n:x.n}; }
+    if(fl&&fl.nome!==x.name){
+      bc.appendChild(el('span','bn',(x.name||'?')+(x.nv?' Nv '+x.nv:'')+' → '+fl.nome));
+      var fn=el('span','nota fin '+(fl.v>=3.5?'ok':'no'),'N '+fl.n); fn.title=fl.v>=3.5?'Nota na última etapa: passa de 3,5 (entra no Mercado)':'Nota na última etapa: abaixo de 3,5'; bc.appendChild(fn);
+      bc.appendChild(el('span','tag','agora '+x.n));
+    } else {
+      bc.appendChild(el('span','bn',(x.name||'?')+(x.nv?' Nv '+x.nv:'')));
+      var nn=el('span','nota'+(fl?' fin '+(fl.v>=3.5?'ok':'no'):''),'Nota '+x.n); if(fl) nn.title='Já está na última etapa'; bc.appendChild(nn);
+    }
     if(x.iv){ var ivn=parseInt(x.iv,10)||0, med=ivn/6;
       var ivt=el('span','tag iv'+(med>=28?' hi':''),(med>=28?'★ ':'')+'IV '+x.iv+' · méd. '+med.toFixed(1).replace('.',','));
       ivt.title='Soma dos 6 IVs (máx. 192). Média 28 ou mais fica em destaque.'; bc.appendChild(ivt); }
     if(x.q) bc.appendChild(el('span','tag','Q '+x.q));
     if(x.p) bc.appendChild(el('span','tag',x.p));
-    if(x.fin){
-      if(x.fin.length) x.fin.forEach(function(f){ var v=num(f.n); var t=el('span','fin '+(v>=3.5?'ok':'no'),'→ '+(f.mega&&!/^mega/i.test(f.nome)?'Mega ':'')+f.nome+' '+f.n);
-        t.title=v>=3.5?'Na forma final passa de 3,5 — entra no Mercado da Comunidade':'Na forma final fica abaixo de 3,5'; bc.appendChild(t); });
-      else { var v0=num(x.n); bc.appendChild(el('span','fin '+(v0>=3.5?'ok':'no'),'forma final')); }
-    } else if(x.pend) bc.appendChild(el('span','fin wait','→ calculando forma final…'));
+    if(!x.fin&&x.pend) bc.appendChild(el('span','fin wait','calculando última etapa…'));
     if(x.ivs&&x.ivs.length){ var ivw=el('span','ivs'); x.ivs.forEach(function(st){ var ch=el('span','ivc'+(st.v>=28?' hi':''),st.s+' '+st.v); ivw.appendChild(ch); }); bc.appendChild(ivw); }
     if(x.h){ bc.appendChild(el('span','sp')); bc.appendChild(el('span','hora','🕒 '+x.h)); }
     return bc;
