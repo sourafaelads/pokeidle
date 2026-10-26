@@ -124,7 +124,7 @@ fn itens_baixos(v: &serde_json::Value, lim_bola: u64, lim_pocao: u64) -> Vec<Str
 
 const INSTA: &str = "sourafaelads";
 /// Versão deste app (compare com a "tag" da Release no GitHub, ex.: v0.37)
-const VERSAO: &str = "0.41";
+const VERSAO: &str = "0.42";
 /// Repositório onde saem as versões novas (Releases)
 const REPO_PADRAO: &str = "sourafaelads/pokeidle";
 fn repo_padrao() -> String { REPO_PADRAO.into() }
@@ -333,7 +333,8 @@ fn extensoes_padrao() -> Vec<String> {
 
 fn canais_padrao() -> Vec<String> {
     ["ClovaoBengala", "aXtLOL", "Rodil", "matta", "Biscoitao", "cogu", "Guaxilol1",
-     "LuccaTV", "faasii", "PatoPapao", "TFToddy", "Techzz", "dersin2k", "FaturetoSL"].iter().map(|s| s.to_string()).collect()
+     "LuccaTV", "faasii", "PatoPapao", "TFToddy", "Techzz", "dersin2k", "FaturetoSL",
+     "mecmeno", "DenisSniderTV"].iter().map(|s| s.to_string()).collect()
 }
 
 /// Canais que saíram da parceria: são tirados também de configs antigos.
