@@ -124,7 +124,7 @@ fn itens_baixos(v: &serde_json::Value, lim_bola: u64, lim_pocao: u64) -> Vec<Str
 
 const INSTA: &str = "sourafaelads";
 /// Versão deste app (compare com a "tag" da Release no GitHub, ex.: v0.37)
-const VERSAO: &str = "0.42";
+const VERSAO: &str = "0.43";
 /// Repositório onde saem as versões novas (Releases)
 const REPO_PADRAO: &str = "sourafaelads/pokeidle";
 fn repo_padrao() -> String { REPO_PADRAO.into() }
@@ -137,7 +137,8 @@ fn ver_num(v: &str) -> Vec<u64> {
 fn um() -> usize { 1 }
 fn kick_canais_padrao() -> Vec<String> {
     ["axt", "rodil", "guaxilol1", "yetz", "patopapao2", "clovaobengalalol", "biscoitao", "matta", "cogu",
-     "tftoddy", "luccatv", "techzz", "dersin2k"].iter().map(|s| s.to_string()).collect()
+     "tftoddy", "luccatv", "techzz", "dersin2k",
+     "mecmeno", "faturetosl", "yulla", "surskity"].iter().map(|s| s.to_string()).collect()
 }
 
 /// A conta está logada na Kick (neste perfil)?
@@ -334,11 +335,11 @@ fn extensoes_padrao() -> Vec<String> {
 fn canais_padrao() -> Vec<String> {
     ["ClovaoBengala", "aXtLOL", "Rodil", "matta", "Biscoitao", "cogu", "Guaxilol1",
      "LuccaTV", "faasii", "PatoPapao", "TFToddy", "Techzz", "dersin2k", "FaturetoSL",
-     "mecmeno", "DenisSniderTV"].iter().map(|s| s.to_string()).collect()
+     "mecmeno", "DenisSniderTV", "yulla"].iter().map(|s| s.to_string()).collect()
 }
 
 /// Canais que saíram da parceria: são tirados também de configs antigos.
-const CANAIS_REMOVIDOS: &[&str] = &["surskity11", "surskity"];
+const CANAIS_REMOVIDOS: &[&str] = &["surskity11"]; // Surskity saiu só da Twitch (voltou na Kick)
 
 fn yes() -> bool { true }
 fn largura() -> f64 { 1920.0 }
